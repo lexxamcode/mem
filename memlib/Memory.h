@@ -156,6 +156,7 @@ public:
             }
         }
 
+        ptrace(PTRACE_DETACH, _pid, 0, 0);
         close(_mem);
         delete[] value_in_bytes;
         return addresses;
