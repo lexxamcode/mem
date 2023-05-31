@@ -14,7 +14,7 @@
 /// Splits string to a vector of words by delimiter
 /// \returns
 /// Vector of words
-static std::vector<std::string> string_split(const std::string& str, const std::string& delimiter)
+inline std::vector<std::string> string_split(const std::string& str, const std::string& delimiter)
 {
     // Result vector
     std::vector<std::string> words;
@@ -33,24 +33,6 @@ static std::vector<std::string> string_split(const std::string& str, const std::
     }
     free(word);
     return words;
-}
-
-/// \name value_to_bytes(type value)
-/// \details
-/// Makes array of bytes from given value
-/// \returns
-/// Array of bytes
-template <class type>
-static char* value_to_bytes(type value)
-{
-    size_t size = sizeof(value);
-
-    char* bytes = new char[size];
-
-    for (int i = 0; i < size; i++)
-        bytes[i] = ((char*)&value)[i];
-
-    return bytes;
 }
 
 #endif //MEM_TRANSFORMATIONS_H

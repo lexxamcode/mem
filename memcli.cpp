@@ -54,7 +54,14 @@ int menu(Memory memory)
                     case 'i': { std::cin >> int_value; addresses = memory.find_addresses(int_value); break; }
                     case 'f': { std::cin >> float_value; addresses = memory.find_addresses(float_value); break; }
                     case 'd': { std::cin >> double_value; addresses = memory.find_addresses(double_value); break; }
-                    case 's': { std::cin >> string_value; addresses = memory.find_addresses(string_value.c_str()); break; }
+                    case 's': {
+                        std::cin >> string_value;
+
+                        char buffer[string_value.length()];
+                        memcpy(buffer, string_value.data(), string_value.length());
+                        addresses = memory.find_addresses(buffer);
+                        break;
+                    }
                     default: break;
                 }
 
@@ -79,7 +86,7 @@ int menu(Memory memory)
                     case 'i': { std::cin >> int_value; std::cin >> address; memory.write_value(int_value, std::stoul(address, 0, 16)); break; }
                     case 'f': { std::cin >> float_value; std::cin >> address; memory.write_value(float_value, std::stoul(address, 0, 16)); break; }
                     case 'd': { std::cin >> double_value; std::cin >> address; memory.write_value(double_value, std::stoul(address, 0, 16)); break; }
-                    case 's': { std::cin >> string_value; std::cin >> address; memory.write_value(string_value, std::stoul(address, 0, 16)); break; }
+                    case 's': { std::cin >> string_value; std::cin >> address; memory.write_value(string_value.c_str(), string_value.size(), std::stoul(address, 0, 16)); break; }
                     default: break;
                 }
                 break;
