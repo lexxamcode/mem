@@ -6,7 +6,9 @@ void get_type()
     std::cout << "(i) int" << std::endl;
     std::cout << "(f) float" << std::endl;
     std::cout << "(d) double" << std::endl;
-    std::cout << "(s) string" << std:: endl;
+    std::cout << "(s) char*" << std:: endl;
+    std::cout << "(q) string" << std::endl;
+    std::cout << "(p) wstring" << std::endl;
 }
 
 int menu(Memory memory)
@@ -62,6 +64,7 @@ int menu(Memory memory)
                         addresses = memory.find_addresses(buffer);
                         break;
                     }
+                    case 'q': { std::cin >> string_value; addresses = memory.find_addresses(string_value); break; }
                     default: break;
                 }
 
@@ -87,6 +90,7 @@ int menu(Memory memory)
                     case 'f': { std::cin >> float_value; std::cin >> address; memory.write_value(float_value, std::stoul(address, 0, 16)); break; }
                     case 'd': { std::cin >> double_value; std::cin >> address; memory.write_value(double_value, std::stoul(address, 0, 16)); break; }
                     case 's': { std::cin >> string_value; std::cin >> address; memory.write_value(string_value.c_str(), string_value.size(), std::stoul(address, 0, 16)); break; }
+                    case 'q': { std::cin >> string_value; std::cin >> address; memory.write_value(string_value.c_str(), std::stoul(address, 0, 16)); break; }
                     default: break;
                 }
                 break;

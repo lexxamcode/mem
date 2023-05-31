@@ -105,7 +105,7 @@ public:
     }
 
     /// \name
-    /// find_addressess(type value)
+    /// find_addresses(type value)
     /// \details
     /// Finds all addresses containing value
     /// \returns
@@ -167,80 +167,11 @@ public:
     }
 
     /// \name
-    /// find_addressess(string value)
+    /// find_addresses(char* value)
     /// \details
-    /// Finds all addresses containing value
+    /// Finds all addresses containing string value
     /// \returns
-    /// Vector of all addresses containing value or empty vector
-    std::vector<unsigned long> find_addresses(const std::string& value)
-    {
-        std::vector<unsigned long> addresses;
-        char bytes[value.length() + 1];
-
-        std::cout << value << std::endl;
-        std::cout << sizeof bytes << std::endl;
-
-        for (int i = 0; i < value.length(); i++)
-        {
-            bytes[i] = static_cast<int>(value[i]);
-            std::cout << std::hex << static_cast<int>(bytes[i]) << " ";
-        }
-        bytes[value.length()] = 0;
-        std::cout << std::endl;
-
-        // Open mem file for using process memory
-        std::string mem = std::string("/proc/") + std::to_string(_pid) + std::string("/mem");
-        _mem =  open(mem.c_str(), O_RDWR);
-        if (_mem == -1)
-        {
-            std::cerr << "Error while opening mem file: " << errno << std::endl;
-            //delete[] value_in_bytes;
-            return addresses;
-        }
-
-        if (ptrace(PTRACE_ATTACH, _pid, 0, 0) == -1)
-        {
-            std::cerr << "Can not attach to the process" << std::endl;
-            close(_mem);
-            //delete[] value_in_bytes;
-            return addresses;
-        }
-
-        read_maps();
-
-        waitpid(_pid, nullptr, 0);
-
-        for (auto &it: _mappings)
-        {
-            if (it.permissions.find('w') != std::string::npos)
-            {
-                if (sizeof(value) <= it.end_address - it.start_address)
-                {
-                    for (unsigned long address = it.start_address; address < it.end_address; address++)
-                    {
-                        char found_bytes[value.length() + 1];
-
-                        lseek(_mem, address, SEEK_SET);
-
-                        if (pread(_mem, found_bytes, value.length() + 1, address) != -1)
-                        {
-                            for (int i = 0; i < value.length() + 1; i ++ )
-                                std::cout << std::hex << static_cast<int>(found_bytes[i]) << " ";
-                            std::cout << " " << std::hex << address << std::endl;
-                            if (memcmp(found_bytes, bytes, value.length() + 1) == 0)
-                                addresses.push_back(address);
-                        }
-                    }
-                }
-            }
-        }
-
-        ptrace(PTRACE_DETACH, _pid, 0, 0);
-        close(_mem);
-        //delete[] value_in_bytes;
-        return addresses;
-    }
-
+    /// Vector of all addresses containing string value or empty vector
     std::vector<unsigned long> find_addresses(char* value)
     {
         std::vector<unsigned long> addresses;
@@ -301,21 +232,14 @@ public:
         return addresses;
     }
 
-    std::vector<unsigned long> find_addresses(const std::wstring& value)
+    template <class type>
+    std::vector<unsigned long> find_addresses(const type& value, const std::vector<unsigned long>& prev_addresses)
     {
         std::vector<unsigned long> addresses;
-        char bytes[value.length() + 1];
-
-        std::wcout << value << std::endl;
-        std::cout << sizeof bytes << std::endl;
-
-        for (int i = 0; i < value.length(); i++)
-        {
-            bytes[i] = static_cast<int>(value[i]);
-            std::cout << std::hex << static_cast<int>(bytes[i]) << " ";
-        }
-        bytes[value.length()] = 0;
-        std::cout << std::endl;
+        char bytes[sizeof value];
+        std::copy(static_cast<const char*>(static_cast<const void*>(&value)),
+                  static_cast<const char*>(static_cast<const void*>(&value)) + sizeof value,
+                  bytes);
 
         // Open mem file for using process memory
         std::string mem = std::string("/proc/") + std::to_string(_pid) + std::string("/mem");
@@ -323,7 +247,6 @@ public:
         if (_mem == -1)
         {
             std::cerr << "Error while opening mem file: " << errno << std::endl;
-            //delete[] value_in_bytes;
             return addresses;
         }
 
@@ -337,29 +260,70 @@ public:
         read_maps();
 
         waitpid(_pid, nullptr, 0);
-
-        for (auto &it: _mappings)
+        for (auto& address: prev_addresses)
         {
-            if (it.permissions.find('w') != std::string::npos)
+            char found_bytes[sizeof(value)];
+
+            lseek(_mem, address, SEEK_SET);
+
+            if (pread(_mem, found_bytes, sizeof(value), address) != -1)
             {
-                if (sizeof(value) <= it.end_address - it.start_address)
-                {
-                    for (unsigned long address = it.start_address; address < it.end_address; address++)
-                    {
-                        char found_bytes[value.length() + 1];
+                if (memcmp(found_bytes, bytes, sizeof(value)) == 0)
+                    addresses.push_back(address);
+            }
+        }
 
-                        lseek(_mem, address, SEEK_SET);
+        ptrace(PTRACE_DETACH, _pid, 0, 0);
+        close(_mem);
+        return addresses;
+    }
 
-                        if (pread(_mem, found_bytes, value.length() + 1, address) != -1)
-                        {
-                            for (int i = 0; i < value.length() + 1; i ++ )
-                                std::cout << std::hex << static_cast<int>(found_bytes[i]) << " ";
-                            std::cout << " " << std::hex << address << std::endl;
-                            if (memcmp(found_bytes, bytes, value.length() + 1) == 0)
-                                addresses.push_back(address);
-                        }
-                    }
-                }
+    std::vector<unsigned long> find_addresses(char* value, const std::vector<unsigned long> prev_addresses)
+    {
+        std::vector<unsigned long> addresses;
+        size_t length = strlen(value);
+        char bytes[length + 1];
+
+        std::wcout << value << std::endl;
+        std::cout << sizeof bytes << std::endl;
+
+        for (int i = 0; i < length; i++)
+        {
+            bytes[i] = static_cast<int>(value[i]);
+            std::cout << std::hex << static_cast<int>(bytes[i]) << " ";
+        }
+        bytes[length] = 0;
+        std::cout << std::endl;
+
+        // Open mem file for using process memory
+        std::string mem = std::string("/proc/") + std::to_string(_pid) + std::string("/mem");
+        _mem =  open(mem.c_str(), O_RDWR);
+        if (_mem == -1)
+        {
+            std::cerr << "Error while opening mem file: " << errno << std::endl;
+            return addresses;
+        }
+
+        if (ptrace(PTRACE_ATTACH, _pid, 0, 0) == -1)
+        {
+            std::cerr << "Can not attach to the process" << std::endl;
+            close(_mem);
+            return addresses;
+        }
+
+        read_maps();
+
+        waitpid(_pid, nullptr, 0);
+        for (auto& address: prev_addresses)
+        {
+            char found_bytes[length + 1];
+            memset(found_bytes, 0, length + 1);
+
+            lseek(_mem, address, SEEK_SET);
+
+            if (pread(_mem, found_bytes, length + 1, address) != -1) {
+                if (memcmp(found_bytes, bytes, length + 1) == 0)
+                    addresses.push_back(address);
             }
         }
 
